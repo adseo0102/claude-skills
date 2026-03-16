@@ -245,16 +245,23 @@ PNG 변환 및 검수가 완료되면 자동으로 Vercel에 배포하여 공유
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: -apple-system, sans-serif; }
-    .carousel { position: relative; width: 100%; max-width: 540px; aspect-ratio: 1; }
+    .carousel { position: relative; width: 90vh; max-width: 90vw; aspect-ratio: 1; }
     .carousel img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.3s; border-radius: 12px; }
     .carousel img.active { opacity: 1; }
-    .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 10; }
-    .nav.prev { left: -50px; }
-    .nav.next { right: -50px; }
-    .dots { text-align: center; margin-top: 16px; }
-    .dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #555; margin: 0 4px; cursor: pointer; }
+    .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.9); border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; font-size: 20px; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .nav:hover { background: #fff; }
+    .nav.prev { left: -60px; }
+    .nav.next { right: -60px; }
+    .dots { text-align: center; margin-top: 20px; }
+    .dots span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #555; margin: 0 5px; cursor: pointer; transition: background 0.2s; }
     .dots span.active { background: #e5007e; }
-    .counter { text-align: center; color: #999; margin-top: 8px; font-size: 14px; }
+    .counter { text-align: center; color: #999; margin-top: 10px; font-size: 15px; }
+    @media (max-width: 860px) {
+      .carousel { width: 90vw; }
+      .nav.prev { left: 8px; }
+      .nav.next { right: 8px; }
+      .nav { width: 40px; height: 40px; background: rgba(255,255,255,0.7); }
+    }
   </style>
 </head>
 <body>
