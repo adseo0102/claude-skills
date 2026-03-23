@@ -245,7 +245,7 @@ PNG 변환 및 검수가 완료되면 자동으로 Vercel에 배포하여 공유
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: -apple-system, sans-serif; }
-    .carousel { position: relative; width: 90vh; max-width: 90vw; aspect-ratio: 1; }
+    .carousel { position: relative; width: 90vmin; max-width: 860px; aspect-ratio: 1; }
     .carousel img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.3s; border-radius: 12px; }
     .carousel img.active { opacity: 1; }
     .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.9); border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; font-size: 20px; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }

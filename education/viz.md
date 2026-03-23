@@ -5,61 +5,59 @@
 사용자가 $ARGUMENTS 로 시각화 요청을 전달합니다.
 예시: `/viz AI 교육 프로그램 3개월 성과 대시보드`
 
-## 인터랙티브 요소 (필수)
-
-모든 시각화에 최소 3가지 인터랙티브 요소를 포함합니다:
-
-### 필수 (모든 viz에 포함)
-- **스크롤 리빌**: IntersectionObserver, fadeInUp, stagger 80ms
-- **호버 피드백**: 카드 shadow 확대, 버튼 translateY(-2px)
-- **숫자 카운터**: 스크롤 도달 시 0→목표값 애니메이션
-
-### 클릭/탭 인터랙션 (최소 1개 이상)
-- **탭 전환**: 카테고리별 콘텐츠 전환 (버튼 클릭)
-- **카드 클릭**: 클릭 시 상세 정보 펼침/접힘
-- **필터 버튼**: 데이터 필터링 표시/숨김
-- **카드 뒤집기**: 3D flip 애니메이션으로 앞/뒷면 전환
-- **타임라인 선택**: 항목 클릭 시 상세 표시
-
-### 차트 인터랙션
-- Chart.js hover 툴팁 활성화
-- 테마 토글 시 차트 재생성
-- 차트 컨테이너 min-height: 360px
-
-### CSS 애니메이션 (와우 포인트)
-- 원형 프로그레스 바 (SVG stroke-dashoffset 애니메이션)
-- 게이지 바 채우기 애니메이션
-- 부드러운 상태 전환 (transition 0.3s)
-
 ## Step 0: 리서치 (자동)
 
 시각화 제작 전, 주제에 대한 팩트와 수치를 수집합니다.
 사용자가 직접 데이터(CSV/JSON/URL)를 제공한 경우 이 단계를 생략합니다.
 
-### WebSearch
+### 0-1. WebSearch (초기 검색)
 - 주제에서 핵심 키워드 3~5개 추출
 - 한국어 + 영어 키워드 병행
 - 최소 3개 이상 서로 다른 출처에서 수집
 - 출처 우선순위: 공식 리포트 > 업계 미디어 > 블로그
 - 1년 이내 데이터 우선
 
+### 0-2. Gemini 그라운딩 검색 (교차 검증)
+WebSearch 결과를 확보한 뒤, Gemini Google Search Grounding으로 교차 검증합니다.
+
+```bash
+node ~/gemini-tools/gemini-search.mjs "검색 키워드"
+```
+
+- Gemini가 반환하는 `summary`와 `citations`를 WebSearch 결과와 대조
+- 수치가 일치하면 ✅ 검증됨, 불일치하면 ⚠️ 표시 후 추가 확인
+- Gemini 출처를 리서치 결과에 통합
+
 ### 리서치 규칙
-- 핵심 수치는 2개 이상 출처에서 교차 검증
-- 사용자가 직접 데이터를 제공한 경우 리서치 생략 가능
+- 핵심 수치는 2개 이상 출처에서 교차 검증 (WebSearch + Gemini)
+- Gemini 검색 실패 시 WebSearch 결과만으로 진행 (에러 무시)
 
 수집 완료 후 간략한 리서치 요약을 사용자에게 보여준 뒤 시각화 제작으로 넘어갑니다.
 
 ## 파일 생성 후 필수 작업
 
-**HTML 파일 생성 후 반드시 아래 2가지를 수행:**
+**HTML 파일 생성 후 반드시 아래 3가지를 모두 수행:**
 
 1. **브라우저 자동 열기:** `start <filename>.html` 실행
 2. **클릭 가능한 URL 반환:** `file://<절대경로>` 형태로 응답에 포함
+3. **Vercel 자동 배포:** 아래 절차에 따라 웹 배포 후 공유 URL 제공
+
+### 자동 배포 절차
+
+1. **프로젝트명 생성**: 한글 파일명의 의미를 영어로 번역하여 slug 생성 (음역 금지, 의미 번역)
+   - 접두사: `ccfm-viz-`
+   - 예: `q4-성과-대시보드.html` → `ccfm-viz-q4-performance-dashboard`
+   - 예: `메타-광고-분석.html` → `ccfm-viz-meta-ad-analysis`
+   - 간결하고 직관적인 2~5단어 slug
+2. **배포 디렉토리 구성**: `$TEMP/{프로젝트명}/` 생성 후 HTML 파일을 `index.html`로 복사
+3. **Vercel 배포**: `cd $TEMP/{프로젝트명} && vercel --yes --prod` 실행
+4. **URL 제공**: 배포된 URL을 사용자에게 제공
 
 응답 예시:
 ```
 시각화를 생성했습니다! 브라우저에서 열고 있습니다...
-file:///C:/Users/홍길동/Downloads/q4-성과-대시보드.html
+file:///Users/junseok/Downloads/q4-성과-대시보드.html
+배포 완료: https://ccfm-viz-q4-performance-dashboard.vercel.app
 ```
 
 ## 필수 요구사항 (NON-NEGOTIABLE)
@@ -512,8 +510,6 @@ body::before {
   </style>
 </head>
 <body>
-  <a href="#main-content" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:10000;padding:8px 16px;background:var(--accent);color:white;text-decoration:none;border-radius:4px;" onfocus="this.style.cssText='position:fixed;left:16px;top:16px;z-index:10000;padding:8px 16px;background:var(--accent);color:white;text-decoration:none;border-radius:4px;'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;'">콘텐츠로 이동</a>
-
   <!-- 메뉴 -->
   <div class="viz-menu">
     <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴">

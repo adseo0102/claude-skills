@@ -9,17 +9,41 @@
 
 ## Step 1: 리서치
 
-주제에서 핵심 키워드 3~5개를 추출하고, **WebSearch**로 팩트와 수치를 수집합니다.
+주제에서 핵심 키워드 3~5개를 추출하고, **WebSearch + Gemini 교차 검증** 체계로 팩트와 수치를 수집합니다.
 
-### WebSearch
+### 1-1. WebSearch (초기 검색)
 - 한국어 + 영어 키워드 병행
 - 최소 3개 이상 서로 다른 출처에서 수집
 - 출처 우선순위: 공식 리포트 > 업계 미디어 > 블로그
 - 1년 이내 데이터 우선
 
+### 1-2. Gemini 그라운딩 검색 (교차 검증)
+WebSearch 결과를 확보한 뒤, 동일 주제에 대해 Gemini Google Search Grounding으로 교차 검증합니다.
+
+```bash
+node ~/gemini-tools/gemini-search.mjs "검색 키워드"
+```
+
+- Gemini가 반환하는 `summary`와 `citations`를 WebSearch 결과와 대조
+- 수치가 일치하면 ✅ 검증됨, 불일치하면 ⚠️ 표시 후 추가 확인
+- Gemini 출처(`citations`)를 리서치 결과 테이블에 통합
+
+### 1-3. Gemini 딥리서치 (선택, 브라우저 자동화)
+사용자가 "딥리서치" 또는 "심층 리서치"를 요청한 경우에만 실행합니다.
+Puppeteer로 Gemini 웹을 직접 제어하여 **자동으로 Deep Research를 실행하고 결과를 추출**합니다.
+
+```bash
+node ~/gemini-tools/gemini-deep-research.mjs "리서치 주제"
+```
+
+- 첫 실행 시 Google 로그인이 필요할 수 있음 (이후 프로필 저장)
+- 실행 완료 시 stdout에 JSON `{ report, topic, status }` 출력
+- 5~20분 소요, 최대 25분 대기
+- 자동 추출 실패 시 사용자에게 결과 복사 요청
+
 ### 리서치 규칙
-- 핵심 수치는 2개 이상 출처에서 교차 검증
-- 출처 반드시 명시
+- 핵심 수치는 2개 이상 출처에서 교차 검증 (WebSearch + Gemini 포함)
+- Gemini 검색 실패 시 WebSearch 결과만으로 진행 (에러 무시)
 
 수집 완료 후 아래 형식으로 사용자에게 보여줍니다:
 
@@ -27,8 +51,10 @@
 ## 📊 리서치 결과: [주제명]
 
 ### 핵심 수치
-| # | 팩트 | 수치 | 출처 | 날짜 |
-|---|------|------|------|------|
+| # | 팩트 | 수치 | 출처 | 검증 | 날짜 |
+|---|------|------|------|------|------|
+
+검증 열: ✅ WebSearch+Gemini 일치 | 🔍 WebSearch만 | 🤖 Gemini만 | ⚠️ 불일치
 
 ### 주요 인사이트
 ### 활용 가능한 사례
@@ -165,6 +191,7 @@
 ## Step 5: PNG 변환 및 검수
 
 puppeteer로 각 HTML을 1080x1080 PNG로 변환하여 `~/cardnews-ccfm/output/[프로젝트 폴더명]/` 에 저장합니다.
+프로젝트 폴더명은 Step 4의 파일 저장 규칙을 따릅니다.
 
 ```javascript
 const puppeteer = require('puppeteer');
@@ -190,6 +217,90 @@ async function convertToPng(htmlFile, outputFile) {
 
 ---
 
+## Step 6: 웹 배포 (자동)
+
+PNG 변환 및 검수가 완료되면 자동으로 Vercel에 배포하여 공유 가능한 URL을 생성합니다.
+
+### 배포 프로세스
+
+1. **캐러셀 뷰어 HTML 생성**: 모든 슬라이드 PNG를 하나의 캐러셀로 묶은 `index.html`을 생성
+2. **프로젝트명 생성**: 한글 폴더명의 의미를 영어로 번역하여 Vercel 프로젝트명으로 사용 (음역 금지, 의미 번역)
+   - 예: `광고비 체크리스트` → `ccfm-card-ad-budget-checklist`
+   - 예: `이커머스 마케팅 시장 2025 조사` → `ccfm-card-ecommerce-marketing-2025`
+   - 프로젝트명 접두사: `ccfm-card-`
+   - 간결하고 직관적인 영어 slug로 생성 (2~5단어)
+3. **배포 디렉토리 구성**: `$TEMP/ccfm-card-{로마자명}/` 에 `index.html` + PNG 파일들 복사
+4. **Vercel 배포**: `vercel --yes --prod` 실행
+5. **URL 제공**: 배포된 URL을 사용자에게 제공
+
+### 캐러셀 뷰어 HTML 템플릿
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CCFM 카드뉴스 — {제목}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: -apple-system, sans-serif; }
+    .carousel { position: relative; width: 90vmin; max-width: 860px; aspect-ratio: 1; }
+    .carousel img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.3s; border-radius: 12px; }
+    .carousel img.active { opacity: 1; }
+    .nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.9); border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; font-size: 20px; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .nav:hover { background: #fff; }
+    .nav.prev { left: -60px; }
+    .nav.next { right: -60px; }
+    .dots { text-align: center; margin-top: 20px; }
+    .dots span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #555; margin: 0 5px; cursor: pointer; transition: background 0.2s; }
+    .dots span.active { background: #e5007e; }
+    .counter { text-align: center; color: #999; margin-top: 10px; font-size: 15px; }
+    @media (max-width: 860px) {
+      .carousel { width: 90vw; }
+      .nav.prev { left: 8px; }
+      .nav.next { right: 8px; }
+      .nav { width: 40px; height: 40px; background: rgba(255,255,255,0.7); }
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="carousel" id="carousel">
+      <!-- PNG 이미지들이 여기에 삽입됨 -->
+      <button class="nav prev" onclick="move(-1)">‹</button>
+      <button class="nav next" onclick="move(1)">›</button>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="counter" id="counter"></div>
+  </div>
+  <script>
+    let current = 0;
+    const imgs = document.querySelectorAll('.carousel img');
+    const dots = document.getElementById('dots');
+    const counter = document.getElementById('counter');
+    imgs.forEach((_, i) => { const d = document.createElement('span'); d.onclick = () => go(i); dots.appendChild(d); });
+    function go(i) { imgs[current].classList.remove('active'); dots.children[current].classList.remove('active'); current = (i + imgs.length) % imgs.length; imgs[current].classList.add('active'); dots.children[current].classList.add('active'); counter.textContent = (current+1) + ' / ' + imgs.length; }
+    function move(d) { go(current + d); }
+    go(0);
+    document.addEventListener('keydown', e => { if(e.key==='ArrowLeft') move(-1); if(e.key==='ArrowRight') move(1); });
+  </script>
+</body>
+</html>
+```
+
+### 배포 절차
+
+프로젝트명은 Claude가 한글 제목의 의미를 해석하여 직접 영어 slug를 생성합니다. (별도 스크립트 불필요)
+
+1. `$TEMP/{프로젝트명}/` 디렉토리 생성
+2. PNG 파일들 복사
+3. 캐러셀 뷰어 `index.html` 생성 (PNG 파일명들을 img 태그로 삽입)
+4. `cd $TEMP/{프로젝트명} && vercel --yes --prod` 실행
+5. 배포된 URL을 사용자에게 제공: `✅ 웹 배포 완료: https://{프로젝트명}.vercel.app`
+
+---
+
 ## 콘텐츠 규칙
 - 주제 도메인: 퍼포먼스 마케팅, 광고 운영, 마케팅 전략, 브랜드 운영, 이커머스
 - 타겟 독자: 마케터, 브랜드 담당자, 사업가
@@ -200,3 +311,4 @@ async function convertToPng(htmlFile, outputFile) {
 ## 응답 형식
 각 단계 시작 시: `📍 현재 단계: Step [N] — [단계명]`
 단계 완료 시: `✅ Step [N] 완료. 다음 단계로 넘어갑니다.`
+Step 6 완료 시: `✅ 웹 배포 완료: https://{프로젝트명}.vercel.app`

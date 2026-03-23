@@ -5,6 +5,35 @@
 사용자가 $ARGUMENTS 로 시각화 요청을 전달합니다.
 예시: `/viz AI 교육 프로그램 3개월 성과 대시보드`
 
+## Step 0: 리서치 (자동)
+
+시각화 제작 전, 주제에 대한 팩트와 수치를 수집합니다.
+사용자가 직접 데이터(CSV/JSON/URL)를 제공한 경우 이 단계를 생략합니다.
+
+### 0-1. WebSearch (초기 검색)
+- 주제에서 핵심 키워드 3~5개 추출
+- 한국어 + 영어 키워드 병행
+- 최소 3개 이상 서로 다른 출처에서 수집
+- 출처 우선순위: 공식 리포트 > 업계 미디어 > 블로그
+- 1년 이내 데이터 우선
+
+### 0-2. Gemini 그라운딩 검색 (교차 검증)
+WebSearch 결과를 확보한 뒤, Gemini Google Search Grounding으로 교차 검증합니다.
+
+```bash
+node ~/gemini-tools/gemini-search.mjs "검색 키워드"
+```
+
+- Gemini가 반환하는 `summary`와 `citations`를 WebSearch 결과와 대조
+- 수치가 일치하면 ✅ 검증됨, 불일치하면 ⚠️ 표시 후 추가 확인
+- Gemini 출처를 리서치 결과에 통합
+
+### 리서치 규칙
+- 핵심 수치는 2개 이상 출처에서 교차 검증 (WebSearch + Gemini)
+- Gemini 검색 실패 시 WebSearch 결과만으로 진행 (에러 무시)
+
+수집 완료 후 간략한 리서치 요약을 사용자에게 보여준 뒤 시각화 제작으로 넘어갑니다.
+
 ## 파일 생성 후 필수 작업
 
 **HTML 파일 생성 후 반드시 아래 3가지를 모두 수행:**
@@ -27,7 +56,7 @@
 응답 예시:
 ```
 시각화를 생성했습니다! 브라우저에서 열고 있습니다...
-file:///C:/Users/adseo/Downloads/q4-성과-대시보드.html
+file:///Users/junseok/Downloads/q4-성과-대시보드.html
 배포 완료: https://ccfm-viz-q4-performance-dashboard.vercel.app
 ```
 
@@ -481,8 +510,6 @@ body::before {
   </style>
 </head>
 <body>
-  <a href="#main-content" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:10000;padding:8px 16px;background:var(--accent);color:white;text-decoration:none;border-radius:4px;" onfocus="this.style.cssText='position:fixed;left:16px;top:16px;z-index:10000;padding:8px 16px;background:var(--accent);color:white;text-decoration:none;border-radius:4px;'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;'">콘텐츠로 이동</a>
-
   <!-- 메뉴 -->
   <div class="viz-menu">
     <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴">
